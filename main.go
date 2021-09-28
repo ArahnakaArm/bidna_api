@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gofiber/routes"
 	"net/http"
 	"time"
 
@@ -88,15 +89,17 @@ func main() {
 		fmt.Println(result)
 	} */
 
-	http.HandleFunc("/apix/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello World")
-	})
+	routes.AddCommonRoute()
 
+	/* 	http.HandleFunc("/apix/", func(w http.ResponseWriter, r *http.Request) {
+	   		fmt.Fprintf(w, "Hello World")
+	   	})
+	*/
 	http.HandleFunc("/apix/greet/", func(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Path[len("/greet/"):]
 		fmt.Fprintf(w, "Hello %s\n", name)
 	})
-	http.ListenAndServe("127.0.0.1:3000", nil)
+	http.ListenAndServe("127.0.0.1:3334", nil)
 	/* http.ListenAndServe(":8000", nil) */
 }
 
