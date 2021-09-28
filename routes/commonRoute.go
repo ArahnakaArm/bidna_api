@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+
 func AddCommonRoute(app *fiber.App) {
 
 	apix := app.Group("/apix")
