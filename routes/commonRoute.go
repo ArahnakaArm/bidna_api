@@ -11,6 +11,6 @@ func AddCommonRoute(app *fiber.App) {
 	v1 := apix.Group("/v1")
 
 	v1.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Hello")
+		return c.SendString("Helloo")
 	})
 }
