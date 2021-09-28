@@ -1,12 +1,16 @@
 package routes
 
 import (
-	"fmt"
-	"net/http"
+	"github.com/gofiber/fiber/v2"
 )
 
-func AddCommonRoute() {
-	http.HandleFunc("/apix/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello World")
+func AddCommonRoute(app *fiber.App) {
+
+	apix := app.Group("/apix")
+
+	v1 := apix.Group("/v1")
+
+	v1.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("Hello")
 	})
 }
