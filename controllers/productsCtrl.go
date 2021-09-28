@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"gofiber/db"
 	"gofiber/models"
+	"log"
 	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const COLLECTION_NAME = "products"
@@ -37,5 +39,127 @@ func GetAllProduct(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"resultCode": strconv.Itoa(fiber.StatusOK * 100),
 		"resultData": products,
+		"rowCount":   len(products),
+	})
+}
+
+func GetProduct(c *fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client := db.ConnectMongoDB()
+	collection := client.Collection(COLLECTION_NAME)
+	var product models.Product
+	objId, err := primitive.ObjectIDFromHex(c.Params("id"))
+	if err != nil {
+		fmt.Println(err)
+	}
+	findResult := collection.FindOne(ctx, bson.M{"_id": objId})
+	if err := findResult.Err(); err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusNoContent * 100),
+			"resultMessage": "Not Found",
+		})
+	}
+
+	err = findResult.Decode(&product)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"resultCode": strconv.Itoa(fiber.StatusOK * 100),
+		"resultData": product,
+	})
+}
+
+func AddProduct(c *fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client := db.ConnectMongoDB()
+	collection := client.Collection(COLLECTION_NAME)
+	product := new(models.Product)
+
+	if err := c.BodyParser(product); err != nil {
+		log.Println(err)
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusForbidden * 100),
+			"resultMessage": "Missing Or Invalid Parameter",
+		})
+	}
+
+	result, err := collection.InsertOne(ctx, product)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusInternalServerError * 100),
+			"resultMessage": "Internal Server Error",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"resultCode": strconv.Itoa(fiber.StatusCreated * 100),
+		"resultData": result,
+	})
+}
+
+func UpdateProduct(c *fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client := db.ConnectMongoDB()
+	collection := client.Collection(COLLECTION_NAME)
+
+	product := new(models.Product)
+
+	if err := c.BodyParser(product); err != nil {
+		log.Println(err)
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusForbidden * 100),
+			"resultMessage": "Missing Or Invalid Parameter",
+		})
+	}
+
+	objId, err := primitive.ObjectIDFromHex(c.Params("id"))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	update := bson.M{
+		"$set": product,
+	}
+
+	_, err = collection.UpdateOne(ctx, bson.M{"_id": objId}, update)
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusInternalServerError * 100),
+			"resultMessage": "Internal Server Error",
+		})
+	}
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"resultCode": strconv.Itoa(fiber.StatusOK * 100),
+		"resultData": product,
+	})
+}
+
+func DeleteProduct(c *fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client := db.ConnectMongoDB()
+	collection := client.Collection(COLLECTION_NAME)
+
+	objId, err := primitive.ObjectIDFromHex(c.Params("id"))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	_, err = collection.DeleteOne(ctx, bson.M{"_id": objId})
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusInternalServerError * 100),
+			"resultMessage": "Internal Server Error",
+		})
+	}
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"resultCode":    strconv.Itoa(fiber.StatusOK * 100),
+		"resultMessage": "Success",
 	})
 }

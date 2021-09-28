@@ -13,4 +13,13 @@ func AddProductsRoute(app *fiber.App) {
 	products := v1.Group("/products")
 
 	products.Get("/", controllers.GetAllProduct)
+
+	products.Get("/:id", controllers.GetProduct)
+
+	products.Post("/", controllers.AddProduct)
+
+	products.Put("/:id", controllers.UpdateProduct)
+
+	products.Delete("/:id", controllers.DeleteProduct)
+
 }
