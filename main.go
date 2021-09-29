@@ -1,4 +1,5 @@
 package main
+
 import (
 	"gofiber/routes"
 
@@ -83,12 +84,10 @@ func main() {
 		fmt.Println(result)
 	} */
 
-
-	
-
 	routes.AddCommonRoute(app)
 
 	routes.AddProductsRoute(app)
+	routes.AddUsersRoute(app)
 
 	app.Listen("127.0.0.1:3334")
 	/* http.ListenAndServe(":8000", nil) */
