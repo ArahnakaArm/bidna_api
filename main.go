@@ -13,6 +13,7 @@ func main() {
 
 	app := fiber.New()
 	app.Use(cors.New())
+
 	/* 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
 	   	if err != nil {
 	   		panic(err)

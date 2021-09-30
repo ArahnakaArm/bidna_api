@@ -10,7 +10,7 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.30.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
+	golang.org/x/sys v0.0.0-20210930141918-969570ce7c6c // indirect
 )
 
 require (
@@ -18,7 +18,8 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gofiber/jwt/v2 v2.2.7 // indirect
-	github.com/golang-jwt/jwt/v4 v4.0.0 // indirect
+	github.com/gofiber/jwt/v3 v3.1.1 // indirect
+	github.com/golang-jwt/jwt/v4 v4.1.0 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/jmoiron/sqlx v1.3.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
