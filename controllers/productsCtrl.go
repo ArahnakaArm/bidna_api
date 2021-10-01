@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gofiber/db"
 	"gofiber/models"
+	"gofiber/responseMessage"
 	"log"
 	"strconv"
 	"time"
@@ -29,6 +30,10 @@ func GetAllProduct(c *fiber.Ctx) error {
 		query["name"] = c.Query("name")
 	}
 
+	if c.Query("category") != "" {
+		query["category"] = c.Query("category")
+	}
+
 	cursor, err := collection.Find(ctx, query)
 	if err != nil {
 		fmt.Println(err)
@@ -43,10 +48,15 @@ func GetAllProduct(c *fiber.Ctx) error {
 		return err
 	}
 
+	if products == nil {
+		products = []models.Product{}
+	}
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"resultCode": strconv.Itoa(fiber.StatusOK * 100),
-		"resultData": products,
-		"rowCount":   len(products),
+		"resultCode":    strconv.Itoa(fiber.StatusOK * 100),
+		"resultMessage": responseMessage.RESULT_MESSAGE_SUCCESS,
+		"resultData":    products,
+		"rowCount":      len(products),
 	})
 }
 
@@ -62,9 +72,9 @@ func GetProduct(c *fiber.Ctx) error {
 	}
 	findResult := collection.FindOne(ctx, bson.M{"_id": objId})
 	if err := findResult.Err(); err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+		return c.Status(200).JSON(fiber.Map{
 			"resultCode":    strconv.Itoa(fiber.StatusNoContent * 100),
-			"resultMessage": "Not Found",
+			"resultMessage": responseMessage.RESULT_MESSAGE_DATA_NOT_FOUND,
 		})
 	}
 
@@ -73,8 +83,9 @@ func GetProduct(c *fiber.Ctx) error {
 		fmt.Println(err)
 	}
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"resultCode": strconv.Itoa(fiber.StatusOK * 100),
-		"resultData": product,
+		"resultCode":    strconv.Itoa(fiber.StatusOK * 100),
+		"resultMessage": responseMessage.RESULT_MESSAGE_SUCCESS,
+		"resultData":    product,
 	})
 }
 
@@ -89,14 +100,14 @@ func AddProduct(c *fiber.Ctx) error {
 		log.Println(err)
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"resultCode":    strconv.Itoa(fiber.StatusForbidden * 100),
-			"resultMessage": "Missing Or Invalid Parameter",
+			"resultMessage": responseMessage.RESULT_MESSAGE_MISSING_PARAMETER,
 		})
 	}
 
 	if errs := validator.Validate(product); errs != nil {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"resultCode":    strconv.Itoa(fiber.StatusForbidden * 100),
-			"resultMessage": "Missing Or Invalid Parameter",
+			"resultMessage": responseMessage.RESULT_MESSAGE_MISSING_PARAMETER,
 		})
 	}
 
@@ -108,7 +119,7 @@ func AddProduct(c *fiber.Ctx) error {
 	if productCheckConflictCount >= 1 {
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
 			"resultCode":    strconv.Itoa(fiber.StatusConflict * 100),
-			"resultMessage": "Conflict",
+			"resultMessage": responseMessage.RESULT_MESSAGE_CONFLICT,
 		})
 	}
 
@@ -116,13 +127,14 @@ func AddProduct(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"resultCode":    strconv.Itoa(fiber.StatusInternalServerError * 100),
-			"resultMessage": "Internal Server Error",
+			"resultMessage": responseMessage.RESULT_MESSAGE_INTERNAL_ERROR,
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"resultCode": strconv.Itoa(fiber.StatusCreated * 100),
-		"resultData": result,
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"resultCode":    strconv.Itoa(fiber.StatusCreated * 100),
+		"resultMessage": responseMessage.RESULT_MESSAGE_CREATED,
+		"resultData":    result,
 	})
 }
 
@@ -138,14 +150,14 @@ func UpdateProduct(c *fiber.Ctx) error {
 		log.Println(err)
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"resultCode":    strconv.Itoa(fiber.StatusForbidden * 100),
-			"resultMessage": "Missing Or Invalid Parameter",
+			"resultMessage": responseMessage.RESULT_MESSAGE_MISSING_PARAMETER,
 		})
 	}
 
 	if errs := validator.Validate(product); errs != nil {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"resultCode":    strconv.Itoa(fiber.StatusForbidden * 100),
-			"resultMessage": "Missing Or Invalid Parameter",
+			"resultMessage": responseMessage.RESULT_MESSAGE_MISSING_PARAMETER,
 		})
 	}
 
@@ -158,17 +170,32 @@ func UpdateProduct(c *fiber.Ctx) error {
 		"$set": product,
 	}
 
-	_, err = collection.UpdateOne(ctx, bson.M{"_id": objId}, update)
+	updateResult := collection.FindOneAndUpdate(ctx, bson.M{"_id": objId}, update)
+
+	if updateResult.Err() != nil {
+		return c.Status(200).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusNoContent * 100),
+			"resultMessage": responseMessage.RESULT_MESSAGE_DATA_NOT_FOUND,
+		})
+	}
+
+	if updateResult == nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusInternalServerError * 100),
+			"resultMessage": responseMessage.RESULT_MESSAGE_INTERNAL_ERROR,
+		})
+	}
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"resultCode":    strconv.Itoa(fiber.StatusInternalServerError * 100),
-			"resultMessage": "Internal Server Error",
+			"resultMessage": responseMessage.RESULT_MESSAGE_INTERNAL_ERROR,
 		})
 	}
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"resultCode": strconv.Itoa(fiber.StatusOK * 100),
-		"resultData": product,
+		"resultCode":    strconv.Itoa(fiber.StatusOK * 100),
+		"resultMessage": responseMessage.RESULT_MESSAGE_SUCCESS,
+		"resultData":    product,
 	})
 }
 
@@ -183,16 +210,23 @@ func DeleteProduct(c *fiber.Ctx) error {
 		fmt.Println(err)
 	}
 
-	_, err = collection.DeleteOne(ctx, bson.M{"_id": objId})
+	deleteResult := collection.FindOneAndDelete(ctx, bson.M{"_id": objId})
+
+	if deleteResult.Err() != nil {
+		return c.Status(200).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusNoContent * 100),
+			"resultMessage": responseMessage.RESULT_MESSAGE_DATA_NOT_FOUND,
+		})
+	}
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"resultCode":    strconv.Itoa(fiber.StatusInternalServerError * 100),
-			"resultMessage": "Internal Server Error",
+			"resultMessage": responseMessage.RESULT_MESSAGE_INTERNAL_ERROR,
 		})
 	}
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"resultCode":    strconv.Itoa(fiber.StatusOK * 100),
-		"resultMessage": "Success",
+		"resultMessage": responseMessage.RESULT_MESSAGE_SUCCESS,
 	})
 }
