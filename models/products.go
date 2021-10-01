@@ -1,6 +1,10 @@
 package models
 
 type Product struct {
-	Name   string   `bson:"name,omitempty" json:"name"`
-	Colors []string `bson:"colors,omitempty" json:"colors"`
+	Name     string   `bson:"name" json:"name" validate:"nonnil,nonzero"`
+	Colors   []string `bson:"colors" json:"colors" validate:"nonnil,nonzero"`
+	ImageUrl string   `bson:"imageurl" json:"imageurl" validate:"nonnil,nonzero"`
+	Category string   `bson:"category" json:"category" validate:"nonnil,nonzero"`
+	Price    int      `bson:"price" json:"price" validate:"nonnil,nonzero"`
+	Bidtype  string   `bson:"bidtype" json:"bidtype" validate:"nonnil,nonzero"`
 }

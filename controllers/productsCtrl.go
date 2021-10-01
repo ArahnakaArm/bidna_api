@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"gopkg.in/validator.v2"
 )
 
 const COLLECTION_NAME = "products"
@@ -22,7 +23,13 @@ func GetAllProduct(c *fiber.Ctx) error {
 	client := db.ConnectMongoDB()
 	collection := client.Collection(COLLECTION_NAME)
 	var products []models.Product
-	cursor, err := collection.Find(ctx, bson.M{})
+
+	query := bson.M{}
+	if c.Query("name") != "" {
+		query["name"] = c.Query("name")
+	}
+
+	cursor, err := collection.Find(ctx, query)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println("err")
@@ -86,6 +93,25 @@ func AddProduct(c *fiber.Ctx) error {
 		})
 	}
 
+	if errs := validator.Validate(product); errs != nil {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusForbidden * 100),
+			"resultMessage": "Missing Or Invalid Parameter",
+		})
+	}
+
+	productCheckConflictCount, err := collection.CountDocuments(ctx, bson.M{"name": product.Name})
+
+	if err != nil {
+		panic(err)
+	}
+	if productCheckConflictCount >= 1 {
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusConflict * 100),
+			"resultMessage": "Conflict",
+		})
+	}
+
 	result, err := collection.InsertOne(ctx, product)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -110,6 +136,13 @@ func UpdateProduct(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(product); err != nil {
 		log.Println(err)
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusForbidden * 100),
+			"resultMessage": "Missing Or Invalid Parameter",
+		})
+	}
+
+	if errs := validator.Validate(product); errs != nil {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"resultCode":    strconv.Itoa(fiber.StatusForbidden * 100),
 			"resultMessage": "Missing Or Invalid Parameter",
