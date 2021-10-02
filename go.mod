@@ -14,12 +14,14 @@ require (
 )
 
 require (
+	cloud.google.com/go v0.65.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gofiber/jwt/v2 v2.2.7 // indirect
 	github.com/gofiber/jwt/v3 v3.1.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.1.0 // indirect
+	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/jmoiron/sqlx v1.3.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -29,7 +31,11 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
 	go.mongodb.org/mongo-driver v1.7.2 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
+	golang.org/x/net v0.0.0-20210510120150-4163338589ed // indirect
+	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
+	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208 // indirect
 	golang.org/x/text v0.3.6 // indirect
+	google.golang.org/appengine v1.6.6 // indirect
+	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/validator.v2 v2.0.0-20210331031555-b37d688a7fb0 // indirect
 )

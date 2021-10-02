@@ -13,6 +13,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/validator.v2"
 )
 
@@ -34,7 +35,63 @@ func GetAllProduct(c *fiber.Ctx) error {
 		query["category"] = c.Query("category")
 	}
 
-	cursor, err := collection.Find(ctx, query)
+	if c.Query("pricegreater") != "" {
+		greaterValue, err := strconv.Atoi(c.Query("pricegreater"))
+		if err != nil {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"resultCode":    strconv.Itoa(fiber.StatusForbidden * 100),
+				"resultMessage": responseMessage.RESULT_MESSAGE_MISSING_PARAMETER,
+			})
+		}
+		query["price"] = bson.M{"$gt": greaterValue}
+	}
+
+	if c.Query("pricelower") != "" {
+		lowerValue, err := strconv.Atoi(c.Query("pricelower"))
+		if err != nil {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"resultCode":    strconv.Itoa(fiber.StatusForbidden * 100),
+				"resultMessage": responseMessage.RESULT_MESSAGE_MISSING_PARAMETER,
+			})
+		}
+		query["price"] = bson.M{"$lt": lowerValue}
+	}
+
+	skip := int64(0)
+	limit := int64(0)
+
+	opts := options.FindOptions{
+		Skip:  &skip,
+		Limit: &limit,
+	}
+
+	if c.Query("offset") != "" {
+		skipValue, err := strconv.Atoi(c.Query("offset"))
+		if err != nil {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"resultCode":    strconv.Itoa(fiber.StatusForbidden * 100),
+				"resultMessage": responseMessage.RESULT_MESSAGE_MISSING_PARAMETER,
+			})
+		}
+
+		skipInt64 := int64(skipValue)
+		opts.Skip = &skipInt64
+	}
+
+	if c.Query("limit") != "" {
+		limitValue, err := strconv.Atoi(c.Query("limit"))
+		if err != nil {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"resultCode":    strconv.Itoa(fiber.StatusForbidden * 100),
+				"resultMessage": responseMessage.RESULT_MESSAGE_MISSING_PARAMETER,
+			})
+		}
+
+		limitInt64 := int64(limitValue)
+		opts.Limit = &limitInt64
+	}
+
+	cursor, err := collection.Find(ctx, query, &opts)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println("err")

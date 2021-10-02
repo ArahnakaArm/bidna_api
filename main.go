@@ -85,10 +85,48 @@ func main() {
 		fmt.Println(result)
 	} */
 
-	routes.AddCommonRoute(app)
+	/* 	app.Get("/login", func(c *fiber.Ctx) error {
+	   		url := googleOauthConfig.AuthCodeURL(oauthStateString)
+	   		return c.Redirect(url, fiber.StatusTemporaryRedirect)
 
+	   	})
+	*/
+	/* app.Get("/callback", func(c *fiber.Ctx) error {
+		if c.Query("state") != oauthStateString {
+			fmt.Printf("state is not valid")
+			return c.Redirect("/", fiber.StatusTemporaryRedirect)
+		}
+
+		token, err := googleOauthConfig.Exchange(oauth2.NoContext, c.Query("code"))
+
+		if err != nil {
+			fmt.Printf("could not get token %s\n", err.Error())
+		}
+
+		response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
+
+		if err != nil {
+			fmt.Println("could not get request")
+			return c.Redirect("/", fiber.StatusTemporaryRedirect)
+		}
+
+		defer response.Body.Close()
+
+		content, err := ioutil.ReadAll(response.Body)
+
+		if err != nil {
+			fmt.Printf("could not parse ")
+			return c.Redirect("/", fiber.StatusTemporaryRedirect)
+		}
+
+		return c.Send(content)
+
+	}) */
+
+	routes.AddCommonRoute(app)
 	routes.AddProductsRoute(app)
 	routes.AddUsersRoute(app)
+	routes.AddGoogleAuthRoute(app)
 
 	app.Listen("127.0.0.1:3334")
 	/* http.ListenAndServe(":8000", nil) */
