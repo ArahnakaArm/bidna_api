@@ -1,16 +1,27 @@
 package main
 
 import (
+	"fmt"
 	"gofiber/routes"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/spf13/viper"
 )
 
-const uri = "mongodb://superadmin:123456@51.79.184.185:27017/"
+func init() {
+	viper.SetConfigName("config")
+	viper.AddConfigPath(".")
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(fmt.Errorf("fatal error config file: %s \n", err))
+	}
+}
 
 func main() {
-
 	app := fiber.New()
 	app.Use(cors.New())
 
@@ -128,7 +139,7 @@ func main() {
 	routes.AddUsersRoute(app)
 	routes.AddGoogleAuthRoute(app)
 
-	app.Listen("127.0.0.1:3334")
+	app.Listen(fmt.Sprintf("%s:%s", viper.GetString("app.ip"), viper.GetString("app.port")))
 	/* http.ListenAndServe(":8000", nil) */
 }
 

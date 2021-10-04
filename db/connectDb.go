@@ -2,17 +2,15 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-const uri = "mongodb://superadmin:123456@51.79.184.185:27017/"
-
 func ConnectMongoDB() *mongo.Database {
-
+	var uri = viper.GetString("mongodb.connection")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 
 	// user Connection database
@@ -34,8 +32,8 @@ func ConnectMongoDB() *mongo.Database {
 
 	}
 
-	fmt.Println("Connected to user MongoDB!")
-	return userclient.Database("products")
+	/* fmt.Println("Connected to user MongoDB!") */
+	return userclient.Database(viper.GetString("mongodb.database"))
 }
 
 //GetMongoDBClient , return mongo client for CRUD operations

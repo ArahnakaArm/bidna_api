@@ -1,11 +1,13 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/spf13/viper"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -13,13 +15,13 @@ import (
 
 var (
 	googleOauthConfig = &oauth2.Config{
-		RedirectURL:  "http://localhost:3334/apix/v1/google_auth/callback",
-		ClientID:     "781374464096-1gdncta7qoh9atlpf07sb4gfonq04lci.apps.googleusercontent.com",
-		ClientSecret: "GaXVKMIHTuT-dNTkEBMym-36",
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+		RedirectURL:  viper.GetString("googleAuth.redirectURL"),
+		ClientID:     viper.GetString("googleAuth.clientID"),
+		ClientSecret: viper.GetString("googleAuth.clientSecret"),
+		Scopes:       []string{viper.GetString("googleAuth.scopes")},
 		Endpoint:     google.Endpoint,
 	}
-	oauthStateString = "pseudo-random"
+	oauthStateString = viper.GetString("googleAuth.authStateString")
 )
 
 func HandleGoogleLogin(c *fiber.Ctx) error {
@@ -33,13 +35,13 @@ func HandleGoogleCallBack(c *fiber.Ctx) error {
 		return c.Redirect("/", fiber.StatusTemporaryRedirect)
 	}
 
-	token, err := googleOauthConfig.Exchange(oauth2.NoContext, c.Query("code"))
+	token, err := googleOauthConfig.Exchange(context.Background(), c.Query("code"))
 
 	if err != nil {
 		fmt.Printf("could not get token %s\n", err.Error())
 	}
 
-	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
+	response, err := http.Get(viper.GetString("googleAuth.googleAuthUrl") + token.AccessToken)
 
 	if err != nil {
 		fmt.Println("could not get request")
