@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"gofiber/db"
 	"gofiber/routes"
 	"strings"
 
@@ -134,8 +135,11 @@ func main() {
 
 	}) */
 
+	/* fmt.Println("Connected to user MongoDB!") */
+	database := db.ConnectMongoDB()
+
 	routes.AddCommonRoute(app)
-	routes.AddProductsRoute(app)
+	routes.AddProductsRoute(app, database)
 	routes.AddUsersRoute(app)
 	routes.AddGoogleAuthRoute(app)
 

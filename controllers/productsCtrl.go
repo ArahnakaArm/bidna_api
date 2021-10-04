@@ -13,17 +13,46 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/validator.v2"
 )
 
+type ProductController interface {
+	GetAllProduct(ctx *fiber.Ctx) error
+	GetProduct(ctx *fiber.Ctx) error
+	AddProduct(ctx *fiber.Ctx) error
+	UpdateProduct(ctx *fiber.Ctx) error
+	DeleteProduct(ctx *fiber.Ctx) error
+}
+
+type productController struct {
+	database *mongo.Database
+}
+
+func NewProductController(database *mongo.Database) ProductController {
+	return &productController{database}
+}
+
+/* type bookRepository struct {
+	client *mongo.Client
+}
+
+type BookRepository interface {
+	FindById( ctx context.Context, id int) (*Book, error)
+ }
+
+func NewAccountHandler(client *mongo.Client) bookRepository {
+	return bookRepository{client: client}
+}  */
+
 const COLLECTION_NAME = "products"
 
-func GetAllProduct(c *fiber.Ctx) error {
+func (r *productController) GetAllProduct(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client := db.ConnectMongoDB()
-	collection := client.Collection(COLLECTION_NAME)
+	/* client := db.ConnectMongoDB() */
+	collection := r.database.Collection(COLLECTION_NAME)
 	var products []models.Product
 
 	query := bson.M{}
@@ -117,7 +146,7 @@ func GetAllProduct(c *fiber.Ctx) error {
 	})
 }
 
-func GetProduct(c *fiber.Ctx) error {
+func (r *productController) GetProduct(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client := db.ConnectMongoDB()
@@ -146,7 +175,7 @@ func GetProduct(c *fiber.Ctx) error {
 	})
 }
 
-func AddProduct(c *fiber.Ctx) error {
+func (r *productController) AddProduct(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client := db.ConnectMongoDB()
@@ -195,7 +224,7 @@ func AddProduct(c *fiber.Ctx) error {
 	})
 }
 
-func UpdateProduct(c *fiber.Ctx) error {
+func (r *productController) UpdateProduct(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client := db.ConnectMongoDB()
@@ -256,7 +285,7 @@ func UpdateProduct(c *fiber.Ctx) error {
 	})
 }
 
-func DeleteProduct(c *fiber.Ctx) error {
+func (r *productController) DeleteProduct(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client := db.ConnectMongoDB()
