@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"gofiber/db"
 	"gofiber/models"
+	"gofiber/responseMessage"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -90,11 +94,12 @@ func Login(c *fiber.Ctx) error {
 
 	// Set claims
 	claims := token.Claims.(jwt.MapClaims)
+	claims["id"] = fuser.Id
 	claims["name"] = fuser.Username
 	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
 
 	// Generate encoded token and send it as response.
-	t, err := token.SignedString([]byte("secret"))
+	t, err := token.SignedString([]byte(viper.GetString("appAuth.tokenSecret")))
 	if err != nil {
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
@@ -179,6 +184,59 @@ func Register(c *fiber.Ctx) error {
 		"resultCode": strconv.Itoa(fiber.StatusOK * 100),
 		"resultData": result,
 		"rowCount":   len(users),
+	})
+}
+
+type CustomClaimsExample struct {
+	*jwt.StandardClaims
+	TokenType string
+	CustomerInfo
+}
+type CustomerInfo struct {
+	Name string
+	Kind string
+}
+
+func GetUserByMe(c *fiber.Ctx) error {
+	splitToken := strings.Split(c.Get("authorization"), "Bearer ")
+	reqToken := splitToken[1]
+	token, err := jwt.Parse(reqToken, nil)
+	if token == nil {
+		return err
+	}
+	claims, _ := token.Claims.(jwt.MapClaims)
+	id := claims["id"].(string)
+	fmt.Println(id)
+	var fuser models.User
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client := db.ConnectMongoDB()
+	collection := client.Collection(COLLECTION_USERS)
+
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusInternalServerError * 100),
+			"resultMessage": responseMessage.RESULT_MESSAGE_INTERNAL_ERROR,
+		})
+	}
+
+	var result = collection.FindOne(ctx, bson.M{
+		"_id": objectId,
+	})
+
+	err = result.Decode(&fuser)
+
+	if err != nil {
+		return c.Status(200).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusNoContent * 100),
+			"resultMessage": responseMessage.RESULT_MESSAGE_DATA_NOT_FOUND,
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"resultCode": strconv.Itoa(fiber.StatusOK * 100),
+		"resultData": fuser,
 	})
 }
 

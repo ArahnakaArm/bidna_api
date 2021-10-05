@@ -25,7 +25,7 @@ func init() {
 func main() {
 	app := fiber.New()
 	app.Use(cors.New())
-
+	app.Static("/apix/v1/uploads/profileImage", "./uploads/profileImage")
 	/* 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
 	   	if err != nil {
 	   		panic(err)
@@ -142,6 +142,7 @@ func main() {
 	routes.AddProductsRoute(app, database)
 	routes.AddUsersRoute(app)
 	routes.AddGoogleAuthRoute(app)
+	routes.AddUploadFileRoute(app)
 
 	app.Listen(fmt.Sprintf("%s:%s", viper.GetString("app.ip"), viper.GetString("app.port")))
 	/* http.ListenAndServe(":8000", nil) */

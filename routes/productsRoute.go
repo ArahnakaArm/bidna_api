@@ -13,6 +13,8 @@ func AddProductsRoute(app *fiber.App, db *mongo.Database) {
 	v1 := apix.Group("/v1")
 	products := v1.Group("/products")
 
+	/* 	products.Use("/", controllers.AuthConfig) */
+
 	products.Get("/", controllers.NewProductController(db).GetAllProduct)
 
 	products.Get("/:id", controllers.NewProductController(db).GetProduct)

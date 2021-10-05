@@ -8,6 +8,9 @@ mongodb:
   connection: "mongodb://superadmin:123456@51.79.184.185:27017/"
   database: "developments"  
 
+appAuth : 
+  tokenSecret: "secret"
+
 googleAuth:
   googleAuthUrl: "https://www.googleapis.com/oauth2/v2/userinfo?access_token="
   redirectURL: "http://localhost:3334/apix/v1/google_auth/callback" 
