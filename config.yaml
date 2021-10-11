@@ -18,3 +18,9 @@ googleAuth:
   clientSecret: "GaXVKMIHTuT-dNTkEBMym-36"
   scopes: "https://www.googleapis.com/auth/userinfo.email"
   authStateString: "pseudo-random"
+
+s3:
+  bucketName: "bidna-project"
+  region: "ap-southeast-1"
+  accessKeyId: "AKIA3IA7PUU6BPWB44VS"
+  accessSecretKey: "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"  

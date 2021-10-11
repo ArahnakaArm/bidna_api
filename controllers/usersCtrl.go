@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"gofiber/db"
 	"gofiber/models"
 	"gofiber/responseMessage"
 	"strconv"
@@ -15,18 +14,34 @@ import (
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
 
+type UserController interface {
+	GetAllUser(ctx *fiber.Ctx) error
+	Login(ctx *fiber.Ctx) error
+	Register(ctx *fiber.Ctx) error
+	GetUserByMe(ctx *fiber.Ctx) error
+	ChangePassword(ctx *fiber.Ctx) error
+}
+
+type userController struct {
+	database *mongo.Database
+}
+
+func NewUserController(database *mongo.Database) UserController {
+	return &userController{database}
+}
+
 const COLLECTION_USERS = "users"
 const COLLECTION_USERS_TOKENS = "users_tokens"
 
-func GetAllUser(c *fiber.Ctx) error {
+func (r *userController) GetAllUser(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client := db.ConnectMongoDB()
-	collection := client.Collection(COLLECTION_USERS)
+	collection := r.database.Collection(COLLECTION_USERS)
 	var users []models.User
 	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
@@ -49,14 +64,13 @@ func GetAllUser(c *fiber.Ctx) error {
 	})
 }
 
-func Login(c *fiber.Ctx) error {
+func (r *userController) Login(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client := db.ConnectMongoDB()
 	user := new(models.User)
 	var fuser models.User
-	collection := client.Collection(COLLECTION_USERS)
-	tokens := client.Collection(COLLECTION_USERS_TOKENS)
+	collection := r.database.Collection(COLLECTION_USERS)
+	tokens := r.database.Collection(COLLECTION_USERS_TOKENS)
 	if err := c.BodyParser(user); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"message": err.Error(),
@@ -136,10 +150,9 @@ func Login(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"token": t})
 }
 
-func Register(c *fiber.Ctx) error {
+func (r *userController) Register(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client := db.ConnectMongoDB()
 	user := new(models.User)
 
 	if err := c.BodyParser(user); err != nil {
@@ -150,7 +163,7 @@ func Register(c *fiber.Ctx) error {
 	}
 
 	hash, _ := hashPassword(user.Password)
-	collection := client.Collection(COLLECTION_USERS)
+	collection := r.database.Collection(COLLECTION_USERS)
 	var users []models.User
 
 	var exist = collection.FindOne(ctx, bson.M{
@@ -187,17 +200,7 @@ func Register(c *fiber.Ctx) error {
 	})
 }
 
-type CustomClaimsExample struct {
-	*jwt.StandardClaims
-	TokenType string
-	CustomerInfo
-}
-type CustomerInfo struct {
-	Name string
-	Kind string
-}
-
-func GetUserByMe(c *fiber.Ctx) error {
+func (r *userController) GetUserByMe(c *fiber.Ctx) error {
 	splitToken := strings.Split(c.Get("authorization"), "Bearer ")
 	reqToken := splitToken[1]
 	token, err := jwt.Parse(reqToken, nil)
@@ -210,8 +213,7 @@ func GetUserByMe(c *fiber.Ctx) error {
 	var fuser models.User
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client := db.ConnectMongoDB()
-	collection := client.Collection(COLLECTION_USERS)
+	collection := r.database.Collection(COLLECTION_USERS)
 
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -238,6 +240,103 @@ func GetUserByMe(c *fiber.Ctx) error {
 		"resultCode": strconv.Itoa(fiber.StatusOK * 100),
 		"resultData": fuser,
 	})
+}
+
+func (r *userController) ChangePassword(c *fiber.Ctx) error {
+	splitToken := strings.Split(c.Get("authorization"), "Bearer ")
+	reqToken := splitToken[1]
+	token, err := jwt.Parse(reqToken, nil)
+	if token == nil {
+		return err
+	}
+	claims, _ := token.Claims.(jwt.MapClaims)
+	id := claims["id"].(string)
+	fmt.Println(id)
+	var fuser models.User
+	changePassRequest := new(models.ChangePasswordRequest)
+
+	if err := c.BodyParser(changePassRequest); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": err.Error(),
+		})
+
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	collection := r.database.Collection(COLLECTION_USERS)
+
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusInternalServerError * 100),
+			"resultMessage": responseMessage.RESULT_MESSAGE_INTERNAL_ERROR,
+		})
+	}
+
+	var result = collection.FindOne(ctx, bson.M{
+		"_id": objectId,
+	})
+
+	if err != nil {
+		return c.Status(200).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusNoContent * 100),
+			"resultMessage": responseMessage.RESULT_MESSAGE_DATA_NOT_FOUND,
+		})
+	}
+
+	err = result.Decode(&fuser)
+
+	if err == nil {
+		err := bcrypt.CompareHashAndPassword([]byte(fuser.Password), []byte(changePassRequest.OldPassword))
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "รหัสผ่านไม่ถูกต้อง",
+			})
+		}
+	} else {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "ไม่มีบัญชีผู่ใช้นี้ในระบบ",
+		})
+	}
+
+	newPasswordHash, _ := hashPassword(changePassRequest.NewPassword)
+
+	update := bson.M{
+		"$set": bson.M{"password": newPasswordHash},
+	}
+
+	updateResult := collection.FindOneAndUpdate(ctx, bson.M{"_id": objectId}, update)
+
+	if updateResult.Err() != nil {
+		return c.Status(200).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusNoContent * 100),
+			"resultMessage": responseMessage.RESULT_MESSAGE_DATA_NOT_FOUND,
+		})
+	}
+
+	if updateResult == nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"resultCode":    strconv.Itoa(fiber.StatusInternalServerError * 100),
+			"resultMessage": responseMessage.RESULT_MESSAGE_INTERNAL_ERROR,
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"resultCode":    strconv.Itoa(fiber.StatusOK * 100),
+		"resultMessage": responseMessage.RESULT_MESSAGE_SUCCESS,
+	})
+}
+
+type CustomClaimsExample struct {
+	*jwt.StandardClaims
+	TokenType string
+	CustomerInfo
+}
+type CustomerInfo struct {
+	Name string
+	Kind string
 }
 
 func Accessible(c *fiber.Ctx) error {

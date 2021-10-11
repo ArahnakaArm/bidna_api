@@ -140,7 +140,7 @@ func main() {
 
 	routes.AddCommonRoute(app)
 	routes.AddProductsRoute(app, database)
-	routes.AddUsersRoute(app)
+	routes.AddUsersRoute(app, database)
 	routes.AddGoogleAuthRoute(app)
 	routes.AddUploadFileRoute(app)
 

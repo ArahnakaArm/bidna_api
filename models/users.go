@@ -10,3 +10,8 @@ type User struct {
 	Last_name    string    `json:"last_name"`
 	Created_date time.Time `json:"created_at" bson:"created_at,omitempty"`
 }
+
+type ChangePasswordRequest struct {
+	OldPassword string `bson:"oldPassword" json:"oldPassword" validate:"nonnil,nonzero"`
+	NewPassword string `bson:"newPassword" json:"newPassword" validate:"nonnil,nonzero"`
+}
