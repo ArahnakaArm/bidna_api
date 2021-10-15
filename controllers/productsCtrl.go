@@ -8,6 +8,7 @@ import (
 	"gofiber/responseMessage"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -56,6 +57,9 @@ func (r *productController) GetAllProduct(c *fiber.Ctx) error {
 	var products []models.Product
 
 	query := bson.M{}
+
+	query["deletedAt"] = nil
+
 	if c.Query("name") != "" {
 		query["name"] = c.Query("name")
 	}
@@ -92,6 +96,34 @@ func (r *productController) GetAllProduct(c *fiber.Ctx) error {
 	opts := options.FindOptions{
 		Skip:  &skip,
 		Limit: &limit,
+	}
+
+	if c.Query("orderBy") != "" {
+
+		spiltSortArr := strings.Split(c.Query("orderBy"), ":")
+
+		if len(spiltSortArr) != 2 {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"resultCode":    strconv.Itoa(fiber.StatusForbidden * 100),
+				"resultMessage": responseMessage.RESULT_MESSAGE_MISSING_PARAMETER,
+			})
+		}
+
+		sortKey := spiltSortArr[0]
+
+		order := spiltSortArr[1]
+
+		if order == "asc" {
+			opts.SetSort(bson.D{{sortKey, 1}})
+		} else if order == "desc" {
+			opts.SetSort(bson.D{{sortKey, -1}})
+		} else {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"resultCode":    strconv.Itoa(fiber.StatusForbidden * 100),
+				"resultMessage": responseMessage.RESULT_MESSAGE_MISSING_PARAMETER,
+			})
+		}
+
 	}
 
 	if c.Query("offset") != "" {
@@ -181,6 +213,8 @@ func (r *productController) AddProduct(c *fiber.Ctx) error {
 	client := db.ConnectMongoDB()
 	collection := client.Collection(COLLECTION_NAME)
 	product := new(models.Product)
+	product.CreatedAt = time.Now()
+	product.UpdatedAt = time.Now()
 
 	if err := c.BodyParser(product); err != nil {
 		log.Println(err)
@@ -211,6 +245,7 @@ func (r *productController) AddProduct(c *fiber.Ctx) error {
 
 	result, err := collection.InsertOne(ctx, product)
 	if err != nil {
+		fmt.Println(err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"resultCode":    strconv.Itoa(fiber.StatusInternalServerError * 100),
 			"resultMessage": responseMessage.RESULT_MESSAGE_INTERNAL_ERROR,
@@ -231,6 +266,7 @@ func (r *productController) UpdateProduct(c *fiber.Ctx) error {
 	collection := client.Collection(COLLECTION_NAME)
 
 	product := new(models.Product)
+	product.UpdatedAt = time.Now()
 
 	if err := c.BodyParser(product); err != nil {
 		log.Println(err)
@@ -296,7 +332,7 @@ func (r *productController) DeleteProduct(c *fiber.Ctx) error {
 		fmt.Println(err)
 	}
 
-	deleteResult := collection.FindOneAndDelete(ctx, bson.M{"_id": objId})
+	deleteResult := collection.FindOneAndUpdate(ctx, bson.M{"_id": objId}, bson.M{"$set": bson.M{"deletedAt": time.Now()}})
 
 	if deleteResult.Err() != nil {
 		return c.Status(200).JSON(fiber.Map{
